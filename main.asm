@@ -8,10 +8,10 @@
 	paddleWidth dw 07h
 	paddleHeight dw 30
 	rightPadY dw 80
-	rightPadX dw 280
+	rightPadX dw 300
 	
 	topBoundary dw 10
-	downBoundary dw 310
+	downBoundary dw 160
 	velocity_y dw 20
 
 	
@@ -85,8 +85,6 @@ clearScreenGraphics endp
 
 
 
-
-
 textModeExit proc
 	push ax
 	mov ax, 3
@@ -116,46 +114,32 @@ checkPaddleLeftMove proc
 	mov ah, 00h
 	int 16h
 	cmp al, 'w'
-	je move_up_check1
+	je move_up_check_left
 	cmp al, 's'
-	je move_down_check1
-	
-	move_up_check1:
+	je move_down_check_left
+	jmp ending
+	move_up_check_left:
 		mov dx, [topBoundary]
 		cmp [leftPadY], dx
-		jg move_up1
-		jmp ending1
-	move_up1:
+		jg move_up_left
+		jmp ending
+	move_up_left:
 		mov cx, [velocity_y]
 		sub [leftPadY], cx
-		call clearScreenGraphics
-		push [leftPadY]
-		push [leftPadX]
-		call drawPaddle
-		push [rightPadY]
-		push [rightPadX]
-		call drawPaddle
-
-		jmp ending1
-	move_down_check1:
+		jmp ending
+		
+	move_down_check_left:
 		mov dx, [downBoundary]
 		cmp [leftPadY], dx
-		jl move_down1 
-		jmp ending1
-	move_down1:
+		jl move_down_left 
+		jmp ending
+	move_down_left:
 		mov cx, [velocity_y]
 		add [leftPadY], cx
-		call clearScreenGraphics
-		push [leftPadY]
-		push [leftPadX]
-		call drawPaddle
-		push [rightPadY]
-		push [rightPadX]
-		call drawPaddle
 
-		jmp ending1
+		jmp ending
 
-	ending1:
+	ending:
 		pop cx
 		pop dx
 		pop ax
@@ -169,44 +153,28 @@ checkPaddleRightMove proc
 	
 	mov ah, 00h
 	int 16h
-	cmp al, 'i'
-	je move_up_check2
-	cmp al, 'k'
-	je move_down_check2
-	
-	move_up_check2:
+	cmp al, 'o'     
+	je move_up_check_right
+	cmp al, 'l'     
+	je move_down_check_right
+	jmp ending2
+	move_up_check_right:
 		mov dx, [topBoundary]
 		cmp [rightPadY], dx
-		jg move_up2
+		jg move_up_right
 		jmp ending2
-	move_up2:
+	move_up_right:
 		mov cx, [velocity_y]
 		sub [rightPadY], cx
-		call clearScreenGraphics
-		push [rightPadY]
-		push [rightPadX]
-		call drawPaddle
-		push [leftPadY]
-		push [leftPadX]
-		call drawPaddle
-
 		jmp ending2
-	move_down_check2:
+	move_down_check_right:
 		mov dx, [downBoundary]
 		cmp [rightPadY], dx
-		jl move_down2
+		jl move_down_right
 		jmp ending2
-	move_down2:
+	move_down_right:
 		mov cx, [velocity_y]
 		add [rightPadY], cx
-		call clearScreenGraphics
-		push [rightPadY]
-		push [rightPadX]
-		call drawPaddle
-		push [leftPadY]
-		push [leftPadX]
-		call drawPaddle
-
 		jmp ending2
 
 	ending2:
@@ -222,20 +190,19 @@ main proc
 	mov ds, ax
 	
 	call setGraphic
-	push [leftPadY]
-	push [leftPadX]
-	call drawPaddle
-		
-	push [rightPadY]
-	push [rightPadX]
-	call drawPaddle
-
 
 	start_loop:	
-		
+		push [rightPadY]
+		push [rightPadX]
+		call drawPaddle
+		push [leftPadY]
+		push [leftPadX]
+		call drawPaddle
+
 		call checkExit
 		call checkPaddleLeftMove
 		call checkPaddleRightMove
+		call clearScreenGraphics
 
 		
 		jmp start_loop

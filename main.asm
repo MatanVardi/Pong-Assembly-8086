@@ -12,7 +12,7 @@
 	
 	topBoundary dw 10
 	downBoundary dw 160
-	velocity_y dw 20
+	velocityY dw 20
 
 	ballHeight dw 5
 	ballWidth dw 5
@@ -20,7 +20,8 @@
 	ballX dw 155
 	ballY dw 80
 
-
+	ballVelocityX dw 7
+	ballVelocityY dw 7
 
 .code 
 
@@ -66,11 +67,11 @@ drawPaddle proc
 		sub ax, y
 		cmp ax, paddleHeight
 		jng draw_paddle_left_horizontal
-	pop bp
 	pop ax
 	pop bx
 	pop cx
 	pop dx
+	pop bp
 	ret 4
 drawPaddle endp
 
@@ -116,6 +117,18 @@ drawBall proc
 drawBall endp
 
 
+moveBallRight proc
+	push ax
+	push dx
+	mov ax, [ballVelocityX]
+	add [ballX], ax
+	mov dx, [ballVelocityY]
+	add [ballY], dx
+	pop dx
+	pop ax
+	ret
+moveBallRight endp
+
 clearScreenGraphics proc
 	push ax
     mov ax, 0A000h     
@@ -129,8 +142,6 @@ clearScreenGraphics proc
     ret
 clearScreenGraphics endp
 
-
-
 textModeExit proc
 	push ax
 	mov ax, 3
@@ -143,34 +154,88 @@ textModeExit endp
 
 
 checkExit proc
-	push ax
-	mov ah, 00h 
-	int 16h 
-	cmp al, 1Bh
-	je textModeExit
-	pop ax
-	ret
+    push ax
+    mov ah, 01h      
+    int 16h
+    jz exitDone          
+
+    cmp al, 1Bh          
+    jne exitDone         
+
+    mov ah, 00h          
+    int 16h
+    call textModeExit    
+
+exitDone:
+    pop ax
+    ret
 checkExit endp
 
-checkPaddleLeftMove proc
+delay proc
+    push ax
+    push cx
+    push dx
+    mov ah, 86h
+    mov cx, 0000h    
+    mov dx, 8F45h    
+    int 15h
+    pop dx
+    pop cx
+    pop ax
+    ret
+delay endp
+
+
+checkPaddles proc
 	push ax
 	push dx
 	push cx
 	
-	mov ah, 00h
-	int 16h
+	mov ah, 01h
+    int 16h
+    jz ending 
+	
+    mov ah, 00h      
+    int 16h
+	cmp al, 'o'     
+	je move_up_check_right
+	cmp al, 'l'     
+	je move_down_check_right
+	
 	cmp al, 'w'
 	je move_up_check_left
 	cmp al, 's'
 	je move_down_check_left
 	jmp ending
+
+	
+	move_up_check_right:
+		mov dx, [topBoundary]
+		cmp [rightPadY], dx
+		jg move_up_right
+		jmp ending
+	move_up_right:
+		mov cx, [velocityY]
+		sub [rightPadY], cx
+		jmp ending
+	move_down_check_right:
+		mov dx, [downBoundary]
+		cmp [rightPadY], dx
+		jl move_down_right
+		jmp ending
+	move_down_right:
+		mov cx, [velocityY]
+		add [rightPadY], cx
+		jmp ending
+		
+		
 	move_up_check_left:
 		mov dx, [topBoundary]
 		cmp [leftPadY], dx
 		jg move_up_left
 		jmp ending
 	move_up_left:
-		mov cx, [velocity_y]
+		mov cx, [velocityY]
 		sub [leftPadY], cx
 		jmp ending
 		
@@ -180,55 +245,16 @@ checkPaddleLeftMove proc
 		jl move_down_left 
 		jmp ending
 	move_down_left:
-		mov cx, [velocity_y]
+		mov cx, [velocityY]
 		add [leftPadY], cx
 
-		jmp ending
 
 	ending:
 		pop cx
 		pop dx
 		pop ax
 		ret
-checkPaddleLeftMove endp
-
-checkPaddleRightMove proc
-	push ax
-	push dx
-	push cx
-	
-	mov ah, 00h
-	int 16h
-	cmp al, 'o'     
-	je move_up_check_right
-	cmp al, 'l'     
-	je move_down_check_right
-	jmp ending2
-	move_up_check_right:
-		mov dx, [topBoundary]
-		cmp [rightPadY], dx
-		jg move_up_right
-		jmp ending2
-	move_up_right:
-		mov cx, [velocity_y]
-		sub [rightPadY], cx
-		jmp ending2
-	move_down_check_right:
-		mov dx, [downBoundary]
-		cmp [rightPadY], dx
-		jl move_down_right
-		jmp ending2
-	move_down_right:
-		mov cx, [velocity_y]
-		add [rightPadY], cx
-		jmp ending2
-
-	ending2:
-		pop cx
-		pop dx
-		pop ax
-		ret
-checkPaddleRightMove endp
+checkPaddles endp
 
 main proc 
 
@@ -236,24 +262,23 @@ main proc
 	mov ds, ax
 	
 	call setGraphic
-	push [ballY]
-	push [ballX]
-	call drawBall
-	start_loop:	
+	game_loop:	
+		call clearScreenGraphics
 		push [rightPadY]
 		push [rightPadX]
 		call drawPaddle
 		push [leftPadY]
 		push [leftPadX]
 		call drawPaddle
+		push [ballY]
+		push [ballX]
+		call drawBall
+		call moveBallRight
 
 		call checkExit
-		call checkPaddleLeftMove
-		call checkPaddleRightMove
-		call clearScreenGraphics
-
-		
-		jmp start_loop
+		call checkPaddles
+		call delay
+		jmp game_loop
 		
 main endp 
 

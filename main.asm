@@ -1,12 +1,12 @@
 .model small
 .stack 100h
 
-; TODO: 3. make it mode 4. draw a ball and add physics.  5. draw and move another paddle.  add score.
+; TODO: 4.add BALL physics.  5. check for collision ball with paddle and boundaries 6.  add score.
 .data
 	leftPadY dw 80
 	leftPadX dw 10
 	paddleWidth dw 07h
-	paddleHeight dw 30
+	paddleHeight dw 35
 	rightPadY dw 80
 	rightPadX dw 300
 	
@@ -14,7 +14,11 @@
 	downBoundary dw 160
 	velocity_y dw 20
 
+	ballHeight dw 5
+	ballWidth dw 5
 	
+	ballX dw 155
+	ballY dw 80
 
 
 
@@ -69,6 +73,48 @@ drawPaddle proc
 	pop dx
 	ret 4
 drawPaddle endp
+
+
+ballXVal equ [bp + 4]
+ballYVal equ [bp+6]
+drawBall proc
+	push bp
+	mov bp, sp
+	push ax
+	push bx
+	push cx
+	push dx
+	
+	mov cx, ballXVal ; X 
+	mov dx, ballYVal ; Y
+	
+	draw_ball_left_horizontal:
+		mov ah, 0Ch
+		mov al, 0Fh
+		mov bh, 00h
+		int 10h
+		
+		inc cx
+		mov ax, cx
+		sub ax, ballXVal
+		cmp ax, ballWidth
+		jng draw_ball_left_horizontal
+		
+		mov cx, ballXVal
+		inc dx
+		mov ax, dx
+		sub ax, ballYVal
+		cmp ax, ballHeight
+		jng draw_ball_left_horizontal
+
+	pop dx
+	pop cx
+	pop bx
+	pop ax
+	pop bp
+	ret 4
+drawBall endp
+
 
 clearScreenGraphics proc
 	push ax
@@ -190,7 +236,9 @@ main proc
 	mov ds, ax
 	
 	call setGraphic
-
+	push [ballY]
+	push [ballX]
+	call drawBall
 	start_loop:	
 		push [rightPadY]
 		push [rightPadX]

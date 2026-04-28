@@ -12,6 +12,8 @@
 	
 	topBoundary dw 10
 	downBoundary dw 160
+	rightBoundary dw 300
+	leftBoundary dw 10
 	velocityY dw 20
 
 	ballHeight dw 5
@@ -20,8 +22,14 @@
 	ballX dw 155
 	ballY dw 80
 
-	ballVelocityX dw 7
-	ballVelocityY dw 7
+	ballVelocityX dw 6
+	ballVelocityY dw 3
+	
+	;Will result in either 1 or 2 for the direction
+	;(can be right direction for the x and the y would either be 1 which is down and we use add or 2 for sub
+	
+	ballDirX dw 1
+	ballDirY dw 1
 
 .code 
 
@@ -128,6 +136,44 @@ moveBallRight proc
 	pop ax
 	ret
 moveBallRight endp
+
+moveBallLeft proc
+	push ax
+	push dx
+	mov ax, [ballVelocityX]
+	sub [ballX], ax
+	mov dx, [ballVelocityY]
+	add [ballY], dx
+	pop dx
+	pop ax
+	ret
+moveBallLeft endp
+
+
+generateRandomNumAndMoveBall proc
+	push ax
+	mov ah, 00h
+	int 1Ah
+	mov al, dl
+	and al, 01h
+	inc al
+	cmp al, 1
+	je move_b_right
+	cmp al, 2
+	je move_b_left
+	jmp end_proc
+	move_b_right:
+		call moveBallRight
+		jmp end_proc
+	move_b_left:
+		call moveBallLeft
+		jmp end_proc
+	end_proc:
+		pop ax
+		ret
+generateRandomNumAndMoveBall endp
+
+
 
 clearScreenGraphics proc
 	push ax
@@ -256,6 +302,26 @@ checkPaddles proc
 		ret
 checkPaddles endp
 
+ballCollisionVerticalBoundaries proc
+	push ax
+	
+	mov ax, [ballX]
+	cmp ax, [rightBoundary]
+	jge rightBoundCollision
+	cmp ax, [leftBoundary]
+	jle rightBoundCollision
+	jmp endProgram
+	rightBoundCollision:
+		mov [ballX], 155
+		mov [ballY], 80
+		jmp endProgram
+	endProgram:
+		pop ax
+		ret 
+ballCollisionVerticalBoundaries endp
+
+
+
 main proc 
 
 	mov ax, @data
@@ -273,10 +339,13 @@ main proc
 		push [ballY]
 		push [ballX]
 		call drawBall
-		call moveBallRight
+		;call generateRandomNumAndMoveBall
+
+		call ballCollisionVerticalBoundaries
 
 		call checkExit
 		call checkPaddles
+
 		call delay
 		jmp game_loop
 		

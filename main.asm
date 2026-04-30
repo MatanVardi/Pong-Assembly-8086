@@ -22,14 +22,14 @@
 	ballX dw 155
 	ballY dw 80
 
-	ballVelocityX dw 6
+	ballVelocityX dw 3
 	ballVelocityY dw 3
 	
 	;Will result in either 1 or 2 for the direction
 	;(can be right direction for the x and the y would either be 1 which is down and we use add or 2 for sub
-	
-	ballDirX dw 1
-	ballDirY dw 1
+	; 1 - is left or down and 2 is right or up
+	ballDirX db 1
+	ballDirY db 1
 
 .code 
 
@@ -124,8 +124,19 @@ drawBall proc
 	ret 4
 drawBall endp
 
+moveBallRightUp proc
+	push ax
+	push dx
+	mov ax, [ballVelocityX]
+	add [ballX], ax
+	mov dx, [ballVelocityY]
+	sub [ballY], dx
+	pop dx
+	pop ax
+	ret
+moveBallRightUp endp
 
-moveBallRight proc
+moveBallRightDown proc
 	push ax
 	push dx
 	mov ax, [ballVelocityX]
@@ -135,9 +146,21 @@ moveBallRight proc
 	pop dx
 	pop ax
 	ret
-moveBallRight endp
+moveBallRightDown endp
 
-moveBallLeft proc
+moveBallLeftUp proc
+	push ax
+	push dx
+	mov ax, [ballVelocityX]
+	sub [ballX], ax
+	mov dx, [ballVelocityY]
+	sub [ballY], dx
+	pop dx
+	pop ax
+	ret
+moveBallLeftUp endp
+
+moveBallLeftDown proc
 	push ax
 	push dx
 	mov ax, [ballVelocityX]
@@ -147,31 +170,67 @@ moveBallLeft proc
 	pop dx
 	pop ax
 	ret
-moveBallLeft endp
+moveBallLeftDown endp
+
+randomizeDirections proc
+    push ax
+    push cx
+    
+    mov ah, 00h
+    int 1Ah         
+    
+    mov al, dl      
+    shr al, 2      
+    and al, 01h
+    inc al         
+    mov [ballDirX], al
+    
+    mov al, dl
+    shr al, 4       
+    and al, 01h
+    inc al         
+    mov [ballDirY], al
+    
+    pop cx
+    pop ax
+    ret
+randomizeDirections endp
 
 
-generateRandomNumAndMoveBall proc
-	push ax
-	mov ah, 00h
-	int 1Ah
-	mov al, dl
-	and al, 01h
-	inc al
-	cmp al, 1
-	je move_b_right
-	cmp al, 2
-	je move_b_left
-	jmp end_proc
-	move_b_right:
-		call moveBallRight
-		jmp end_proc
-	move_b_left:
-		call moveBallLeft
-		jmp end_proc
-	end_proc:
-		pop ax
+moveBall proc
+	cmp [ballDirX], 1
+	je left_x_val
+	jmp right_x_val
+	
+	left_x_val:
+		cmp [ballDirY], 1
+		je down_y_val
+		jmp up_y_val
+	
+	down_y_val:
+		call moveBallLeftDown
+		jmp endingProc
+
+	up_y_val:
+		call moveBallLeftUp
+		jmp endingProc
+
+	right_x_val:
+		cmp [ballDirY], 1
+		je down_y_val_second
+		jmp up_y_val_second
+	
+	down_y_val_second:
+		call moveBallRightDown
+		jmp endingProc
+		
+	up_y_val_second:
+		call moveBallRightUp
+		jmp endingProc
+
+	endingProc:
 		ret
-generateRandomNumAndMoveBall endp
+moveBall endp
 
 
 
@@ -314,13 +373,37 @@ ballCollisionVerticalBoundaries proc
 	rightBoundCollision:
 		mov [ballX], 155
 		mov [ballY], 80
+		call randomizeDirections
 		jmp endProgram
 	endProgram:
 		pop ax
 		ret 
 ballCollisionVerticalBoundaries endp
 
+ballCollisionHorizontalBoundaries proc
+	push ax 
+	
+	mov ax, [ballY]
+	cmp ax, [topBoundary]
+	jle change_y_to_down
+	cmp ax, [downBoundary]
+	jge change_y_to_up
+	jmp endBallCollisionProc
+	
+	change_y_to_down:
+	mov [ballDirY], 1
+	add [ballY], 2
+	jmp endBallCollisionProc
 
+	change_y_to_up:
+	mov [ballDirY], 2
+	sub [ballY], 2
+	jmp endBallCollisionProc
+	
+	endBallCollisionProc:
+	pop ax
+	ret
+ballCollisionHorizontalBoundaries endp
 
 main proc 
 
@@ -328,6 +411,7 @@ main proc
 	mov ds, ax
 	
 	call setGraphic
+	call randomizeDirections
 	game_loop:	
 		call clearScreenGraphics
 		push [rightPadY]
@@ -339,9 +423,11 @@ main proc
 		push [ballY]
 		push [ballX]
 		call drawBall
-		;call generateRandomNumAndMoveBall
+
+		call moveBall
 
 		call ballCollisionVerticalBoundaries
+		call ballCollisionHorizontalBoundaries
 
 		call checkExit
 		call checkPaddles

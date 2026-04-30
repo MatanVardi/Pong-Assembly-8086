@@ -12,6 +12,8 @@
 	
 	topBoundary dw 10
 	downBoundary dw 160
+	downBoundaryCollision dw 180
+	topBoundaryCollision dw 5
 	rightBoundary dw 300
 	leftBoundary dw 10
 	velocityY dw 20
@@ -386,18 +388,18 @@ ballCollisionHorizontalBoundaries proc
 	mov ax, [ballY]
 	cmp ax, [topBoundary]
 	jle change_y_to_down
-	cmp ax, [downBoundary]
+	cmp ax, [downBoundaryCollision]
 	jge change_y_to_up
 	jmp endBallCollisionProc
 	
 	change_y_to_down:
 	mov [ballDirY], 1
-	add [ballY], 2
+	add [ballY], 1
 	jmp endBallCollisionProc
 
 	change_y_to_up:
 	mov [ballDirY], 2
-	sub [ballY], 2
+	sub [ballY], 1
 	jmp endBallCollisionProc
 	
 	endBallCollisionProc:
@@ -424,10 +426,9 @@ main proc
 		push [ballX]
 		call drawBall
 
-		call moveBall
-
 		call ballCollisionVerticalBoundaries
 		call ballCollisionHorizontalBoundaries
+		call moveBall
 
 		call checkExit
 		call checkPaddles

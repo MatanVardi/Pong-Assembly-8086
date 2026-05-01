@@ -1,7 +1,7 @@
 .model small
 .stack 100h
 
-; TODO: 4.add BALL physics.  5. check for collision ball with paddle and boundaries 6.  add score.
+; TODO: add score.
 .data
 	leftPadY dw 80
 	leftPadX dw 10
@@ -407,8 +407,42 @@ ballCollisionHorizontalBoundaries proc
 	ret
 ballCollisionHorizontalBoundaries endp
 
-main proc 
+ballCollisionPaddleLeft proc
+    push ax
+    push dx
+    push cx
+    
+    mov ax, [ballX]
+    
+    mov dx, [leftPadX]
+    add dx, [paddleWidth]
+    cmp ax, dx
+    jl endCollisionProc    
+    
+    cmp ax, [leftPadX]
+    jl endCollisionProc     
 
+    mov cx, [ballY]
+    
+    cmp cx, [leftPadY]
+    jl endCollisionProc     
+    
+    mov dx, [leftPadY]
+    add dx, [paddleHeight]
+    cmp cx, dx
+    jg endCollisionProc     
+
+    mov [ballDirX], 2     
+    
+endCollisionProc:
+    pop cx
+    pop dx
+    pop ax
+    ret
+ballCollisionPaddleLeft endp
+
+
+main proc 
 	mov ax, @data
 	mov ds, ax
 	
@@ -428,6 +462,7 @@ main proc
 
 		call ballCollisionVerticalBoundaries
 		call ballCollisionHorizontalBoundaries
+		call ballCollisionPaddleLeft
 		call moveBall
 
 		call checkExit

@@ -1,7 +1,6 @@
 .model small
 .stack 100h
 
-; TODO: add score.
 .data
 	leftPadY dw 80
 	leftPadX dw 10
@@ -369,21 +368,14 @@ ballCollisionVerticalBoundaries proc
 	
 	mov ax, [ballX]
 	cmp ax, [rightBoundary]
-	jge rightBoundCollision
+	jge BoundCollision
 	cmp ax, [leftBoundary]
-	jle leftBoundCollision
+	jle BoundCollision
 	jmp endProgram
-	rightBoundCollision:
+	BoundCollision:
 		mov [ballX], 155
 		mov [ballY], 80
 		call randomizeDirections
-		inc leftPaddleScore
-		jmp endProgram
-	leftBoundCollision:
-		mov [ballX], 155
-		mov [ballY], 80
-		call randomizeDirections
-		inc rightPaddleScore
 		jmp endProgram
 		
 	endProgram:

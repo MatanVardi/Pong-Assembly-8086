@@ -25,13 +25,14 @@
 	ballY dw 80
 
 	ballVelocityX dw 3
-	ballVelocityY dw 3
+	ballVelocityY dw 4
 	
 	;Will result in either 1 or 2 for the direction
 	;(can be right direction for the x and the y would either be 1 which is down and we use add or 2 for sub
 	; 1 - is left or down and 2 is right or up
 	ballDirX db 1
 	ballDirY db 1
+	
 
 .code 
 
@@ -370,13 +371,21 @@ ballCollisionVerticalBoundaries proc
 	cmp ax, [rightBoundary]
 	jge rightBoundCollision
 	cmp ax, [leftBoundary]
-	jle rightBoundCollision
+	jle leftBoundCollision
 	jmp endProgram
 	rightBoundCollision:
 		mov [ballX], 155
 		mov [ballY], 80
 		call randomizeDirections
+		inc leftPaddleScore
 		jmp endProgram
+	leftBoundCollision:
+		mov [ballX], 155
+		mov [ballY], 80
+		call randomizeDirections
+		inc rightPaddleScore
+		jmp endProgram
+		
 	endProgram:
 		pop ax
 		ret 
@@ -417,7 +426,7 @@ ballCollisionPaddleLeft proc
     mov dx, [leftPadX]
     add dx, [paddleWidth]
     cmp ax, dx
-    jl endCollisionProc    
+    jg endCollisionProc    
     
     cmp ax, [leftPadX]
     jl endCollisionProc     
@@ -441,6 +450,43 @@ endCollisionProc:
     ret
 ballCollisionPaddleLeft endp
 
+ballCollisionPaddleRight proc
+    push ax
+    push dx
+    push cx
+
+    mov ax, [ballX]
+    add ax, [ballWidth]     
+
+    cmp ax, [rightPadX]
+    jl endCollisionRightProc    
+
+    mov dx, [rightPadX]
+    add dx, [paddleWidth]
+    cmp ax, dx
+    jg endCollisionRightProc    
+
+    mov cx, [ballY]
+
+    cmp cx, [rightPadY]
+    jl endCollisionRightProc    
+
+    mov dx, [rightPadY]
+    add dx, [paddleHeight]
+    cmp cx, dx
+    jg endCollisionRightProc   
+
+    mov [ballDirX], 1  
+	
+
+endCollisionRightProc:
+    pop cx
+    pop dx
+    pop ax
+    ret
+ballCollisionPaddleRight endp
+
+
 
 main proc 
 	mov ax, @data
@@ -463,6 +509,7 @@ main proc
 		call ballCollisionVerticalBoundaries
 		call ballCollisionHorizontalBoundaries
 		call ballCollisionPaddleLeft
+		call ballCollisionPaddleRight
 		call moveBall
 
 		call checkExit
